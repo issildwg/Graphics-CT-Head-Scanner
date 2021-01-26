@@ -18,13 +18,13 @@ import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import java.io.*;
 
-// OK this is not best practice - maybe you'd like to create
-// a volume data class?
-// I won't give extra marks for that though.
+        // OK this is not best practice - maybe you'd like to create a volume data class? - I won't give extra marks for that though.
 
 public class Example extends Application {
-    short cthead[][][]; //store the 3D volume data set
-    short min, max; //min/max value in the 3D volume data set
+    //store the 3D volume data set
+    short cthead[][][];
+    //min/max value in the 3D volume data set
+    short min, max;
     int CT_x_axis = 256;
     int CT_y_axis = 256;
     int CT_z_axis = 113;
@@ -45,8 +45,11 @@ public class Example extends Application {
         int Front_width = CT_x_axis;
         int Front_height = CT_z_axis;
 
-        //and you do the other (side view) - looking at the ear of the head
+        //Heres the side view - looking at the ear of the head
+        int Side_width = CT_y_axis;
+        int Side_height = CT_z_axis;
 
+//NEED FRONT AND SIDE VERSIONS TOO:
         //We need 3 things to see an image
         //1. We create an image we can write to
         WritableImage top_image = new WritableImage(Top_width, Top_height);
@@ -55,23 +58,26 @@ public class Example extends Application {
         ImageView TopView = new ImageView(top_image);
 
 
+
+// ADJUST THIS SO IT REPRESENTS EACH LEVEL NOT JUST ONE
         Button slice76_button=new Button("slice76"); //an example button to get the slice 76
         //sliders to step through the slices (top and front directions) (remember 113 slices in top direction 0-112)
         Slider Top_slider = new Slider(0, CT_z_axis-1, 0);
         Slider Front_slider = new Slider(0, CT_y_axis-1, 0);
+        Slider Side_slider = new Slider(0, CT_z_axis-1, 0);
 
+//gets the image for slice 76 when the button "slice76" from above is pressed
         slice76_button.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
                 TopDownSlice76(top_image);
             }
         });
-
+// NEED THIS FOR THE FRONT AND SIDE TOO
+        // listens to the number on the slider and displays it
         Top_slider.valueProperty().addListener(
                 new ChangeListener<Number>() {
-                    public void changed(ObservableValue <? extends Number >
-                                                observable, Number oldValue, Number newValue)
-                    {
+                    public void changed(ObservableValue <? extends Number > observable, Number oldValue, Number newValue) {
                         System.out.println(newValue.intValue());
                     }
                 });
@@ -79,8 +85,9 @@ public class Example extends Application {
         FlowPane root = new FlowPane();
         root.setVgap(8);
         root.setHgap(4);
-//https://examples.javacodegeeks.com/desktop-java/javafx/scene/image-scene/javafx-image-example/
+    //https://examples.javacodegeeks.com/desktop-java/javafx/scene/image-scene/javafx-image-example/
 
+// NEED MULTIPLE AND TO ACCOMODATE MORE THAN JUST ONE SLICE
         //3. (referring to the 3 things we need to display an image)
         //we need to add it to the flow pane
         root.getChildren().addAll(TopView, slice76_button, Top_slider);
@@ -94,14 +101,14 @@ public class Example extends Application {
     public void ReadData() throws IOException {
         //File name is hardcoded here - much nicer to have a dialog to select it and capture the size from the user
         File file = new File("CThead");
-        //Read the data quickly via a buffer (in C++ you can just do a single fread - I couldn't find if there is an equivalent in Java)
+        //Read the data quickly via a buffer
         DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(file)));
 
         int i, j, k; //loop through the 3D data set
 
         min=Short.MAX_VALUE; max=Short.MIN_VALUE; //set to extreme values
         short read; //value read in
-        int b1, b2; //data is wrong Endian (check wikipedia) for Java so we need to swap the bytes around
+        int b1, b2; //data is wrong Endian (order of bytes) for Java so we need to swap the bytes around
 
         cthead = new short[CT_z_axis][CT_y_axis][CT_x_axis]; //allocate the memory - note this is fixed for this data set
         //loop through the data reading it in
@@ -114,7 +121,7 @@ public class Example extends Application {
                     read=(short)((b2<<8) | b1); //and swizzle the bytes around
                     if (read<min) min=read; //update the minimum
                     if (read>max) max=read; //update the maximum
-                    cthead[k][j][i]=read; //put the short into memory (in C++ you can replace all this code with one fread)
+                    cthead[k][j][i]=read; //put the short into memory
                 }
             }
         }
@@ -131,6 +138,7 @@ public class Example extends Application {
        the image carrying out the copying of a slice of data into the
        image.
    */
+//READS PIXELS AND WRITES THEM OUT TO A CERTAIN SIZE - CHANGE IT?
     public void TopDownSlice76(WritableImage image) {
         //Get image dimensions, and declare loop variables
         int w=(int) image.getWidth(), h=(int) image.getHeight();
@@ -139,26 +147,22 @@ public class Example extends Application {
         double col;
         short datum;
         //Shows how to loop through each pixel and colour
-        //Try to always use j for loops in y, and i for loops in x
-        //as this makes the code more readable
-        for (int j=0; j<h; j++) {
-            for (int i=0; i<w; i++) {
-                //at this point (i,j) is a single pixel in the image
-                //here you would need to do something to (i,j) if the image size
-                //does not match the slice size (e.g. during an image resizing operation
-                //If you don't do this, your j,i could be outside the array bounds
-                //In the framework, the image is 256x256 and the data set slices are 256x256
-                //so I don't do anything - this also leaves you something to do for the assignment
+        //Try to always use j for loops in y, and i for loops in x as this makes the code more readable
+        for (int j=0; j<h; j++) {  // row loop
+            for (int i=0; i<w; i++) { // column loop
+                /* at this point (i,j) is a single pixel in the image here you would need to do something to (i,j) if the image size does not match the slice size (e.g. during an image resizing operation
+                If you don't do this, your j,i could be outside the array bounds
+                In the framework, the image is 256x256 and the data set slices are 256x256 so I don't do anything - this also leaves you something to do for the assignment */
                 datum=cthead[76][j][i]; //get values from slice 76 (change this in your assignment)
                 //calculate the colour by performing a mapping from [min,max] -> 0 to 1 (float)
                 //Java setColor uses float values from 0 to 1 rather than 0-255 bytes for colour
                 col=(((float)datum-(float)min)/((float)(max-min)));
                 image_writer.setColor(i, j, Color.color(col,col,col, 1.0));
-            } // column loop
-        } // row loop
+            }
+        }
     }
 
-
+//MAIN METHOD
     public static void main(String[] args) {
         launch();
     }
