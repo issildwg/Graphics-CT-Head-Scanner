@@ -18,16 +18,14 @@ import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import java.io.*;
 
-        // OK this is not best practice - maybe you'd like to create a volume data class? - I won't give extra marks for that though.
 
 public class Example extends Application {
-    //store the 3D volume data set
-    short cthead[][][];
-    //min/max value in the 3D volume data set
-    short min, max;
+    short cthead[][][]; //store the 3D volume data set
+    short min, max; //min/max value in the 3D volume data set
     int CT_x_axis = 256;
     int CT_y_axis = 256;
     int CT_z_axis = 113;
+
 
     @Override
     public void start(Stage stage) throws FileNotFoundException, IOException {
@@ -36,20 +34,19 @@ public class Example extends Application {
 
         ReadData();
 
-        //Good practice: Define your top view, front view and side view images (get the height and width correct)
-        //Here's the top view - looking down on the top of the head (each slice we are looking at is CT_x_axis x CT_y_axis)
+        //Top view
         int Top_width = CT_x_axis;
         int Top_height = CT_y_axis;
 
-        //Here's the front view - looking at the front (nose) of the head (each slice we are looking at is CT_x_axis x CT_z_axis)
+        //front view
         int Front_width = CT_x_axis;
         int Front_height = CT_z_axis;
 
-        //Heres the side view - looking at the ear of the head
+        //side view
         int Side_width = CT_y_axis;
         int Side_height = CT_z_axis;
 
-//NEED FRONT AND SIDE VERSIONS TOO:
+//TODO NEED FRONT AND SIDE VERSIONS TOO:
         //We need 3 things to see an image
         //1. We create an image we can write to
         WritableImage top_image = new WritableImage(Top_width, Top_height);
@@ -60,37 +57,39 @@ public class Example extends Application {
 
 
 // ADJUST THIS SO IT REPRESENTS EACH LEVEL NOT JUST ONE
-        Button slice76_button=new Button("slice76"); //an example button to get the slice 76
+        // was slice76_button - is now Top_button
+        Button Top_button=new Button("Show slice"); //an example button to get the slice 76
         //sliders to step through the slices (top and front directions) (remember 113 slices in top direction 0-112)
-        Slider Top_slider = new Slider(0, CT_z_axis-1, 0);
+        Slider Top_slider = new Slider(0, CT_z_axis-1, 0);      //added front and side in
         Slider Front_slider = new Slider(0, CT_y_axis-1, 0);
         Slider Side_slider = new Slider(0, CT_z_axis-1, 0);
 
 //gets the image for slice 76 when the button "slice76" from above is pressed
-        slice76_button.setOnAction(new EventHandler<ActionEvent>() {
+        Top_button.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                TopDownSlice76(top_image);
+                TopDownSlice(top_image, (int) Top_slider.getValue());
             }
         });
-// NEED THIS FOR THE FRONT AND SIDE TOO
+
+//TODO: NEED THIS FOR THE FRONT AND SIDE TOO
         // listens to the number on the slider and displays it
-        Top_slider.valueProperty().addListener(
-                new ChangeListener<Number>() {
-                    public void changed(ObservableValue <? extends Number > observable, Number oldValue, Number newValue) {
-                        System.out.println(newValue.intValue());
-                    }
-                });
+        Top_slider.valueProperty().addListener( new ChangeListener<Number>() {
+            public void changed(ObservableValue <? extends Number > observable, Number oldValue, Number newValue) {
+                System.out.println(newValue.intValue());
+                TopDownSlice(top_image, (int) Top_slider.getValue());
+            }
+        });
 
         FlowPane root = new FlowPane();
         root.setVgap(8);
         root.setHgap(4);
     //https://examples.javacodegeeks.com/desktop-java/javafx/scene/image-scene/javafx-image-example/
 
-// NEED MULTIPLE AND TO ACCOMODATE MORE THAN JUST ONE SLICE
+//TODO NEED MULTIPLE AND TO ACCOMODATE MORE THAN JUST ONE SLICE
         //3. (referring to the 3 things we need to display an image)
         //we need to add it to the flow pane
-        root.getChildren().addAll(TopView, slice76_button, Top_slider);
+        root.getChildren().addAll(TopView, Top_button, Top_slider);
 
         Scene scene = new Scene(root, 640, 480);
         stage.setScene(scene);
@@ -132,6 +131,8 @@ public class Example extends Application {
     }
 
 
+
+
     /*
        This function shows how to carry out an operation on an image.
        It obtains the dimensions of the image, and then loops through
@@ -139,7 +140,8 @@ public class Example extends Application {
        image.
    */
 //READS PIXELS AND WRITES THEM OUT TO A CERTAIN SIZE - CHANGE IT?
-    public void TopDownSlice76(WritableImage image) {
+//TopDownSlice was TopDownSlice76
+    public void TopDownSlice(WritableImage image, int z) {
         //Get image dimensions, and declare loop variables
         int w=(int) image.getWidth(), h=(int) image.getHeight();
         PixelWriter image_writer = image.getPixelWriter();
@@ -153,7 +155,7 @@ public class Example extends Application {
                 /* at this point (i,j) is a single pixel in the image here you would need to do something to (i,j) if the image size does not match the slice size (e.g. during an image resizing operation
                 If you don't do this, your j,i could be outside the array bounds
                 In the framework, the image is 256x256 and the data set slices are 256x256 so I don't do anything - this also leaves you something to do for the assignment */
-                datum=cthead[76][j][i]; //get values from slice 76 (change this in your assignment)
+                datum=cthead[z][j][i]; //get values from slice 76 (change this in your assignment)
                 //calculate the colour by performing a mapping from [min,max] -> 0 to 1 (float)
                 //Java setColor uses float values from 0 to 1 rather than 0-255 bytes for colour
                 col=(((float)datum-(float)min)/((float)(max-min)));
