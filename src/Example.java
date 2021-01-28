@@ -105,18 +105,20 @@ public class Example extends Application {
         });
 
         FlowPane root = new FlowPane();
-        root.setVgap(8);
-        root.setHgap(8);
+        root.setVgap(25);
+        root.setHgap(10);
     //https://examples.javacodegeeks.com/desktop-java/javafx/scene/image-scene/javafx-image-example/
+
 
 //TODO NEED MULTIPLE AND TO ACCOMODATE MORE THAN JUST ONE SLICE
         //3. (referring to the 3 things we need to display an image)
         //we need to add it to the flow pane
-        root.getChildren().addAll(TopView, View_button, Top_slider);
+        root.getChildren().addAll(TopView, Top_slider);
         root.getChildren().addAll(FrontView, Front_slider);
         root.getChildren().addAll(SideView, Side_slider);
+        root.getChildren().addAll(View_button);
 
-        Scene scene = new Scene(root, 600, 750);
+        Scene scene = new Scene(root, 425,600);
         stage.setScene(scene);
         stage.show();
     }
