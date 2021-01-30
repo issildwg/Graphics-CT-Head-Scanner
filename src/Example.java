@@ -1,5 +1,6 @@
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import com.sun.deploy.uitoolkit.ui.ConsoleTraceListener;
 import javafx.application.Application;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -25,6 +26,7 @@ public class Example extends Application {
     int CT_x_axis = 256;
     int CT_y_axis = 256;
     int CT_z_axis = 113;
+    boolean renderImage = false;
 
 
     @Override
@@ -47,34 +49,47 @@ public class Example extends Application {
         int Side_height = CT_z_axis;
 
 
-        //We need 3 things to see an image
-        //1. We create an image we can write to
+        //creates an image (we can write to)
         WritableImage top_image = new WritableImage(Top_width, Top_height);
         WritableImage front_image = new WritableImage(Front_width, Front_height);
         WritableImage side_image = new WritableImage(Side_width, Side_height);
 
-        //2. We create a view of that image
+        //creates a view of those images above
         ImageView TopView = new ImageView(top_image);
         ImageView FrontView = new ImageView(front_image);
         ImageView SideView = new ImageView(side_image);
 
 
-
-//TODO make these more neutral terms
-
-// ADJUST THIS SO IT REPRESENTS EACH LEVEL NOT JUST ONE
         // was slice76_button - is now View_button -- press to show slices
         Button View_button=new Button("Show slice");
 
-        //sliders to step through the slices (top and front directions) (remember 113 slices in top direction 0-112)
+        Button Rend_button=new Button("Render");
+
+        //sliders to step through the slices
         Slider Top_slider = new Slider(0, CT_z_axis-1, 0);
         Slider Front_slider = new Slider(0, CT_y_axis-1, 0);
         Slider Side_slider = new Slider(0, CT_x_axis-1, 0);
+        Slider Rend_slider = new Slider(0, 100, 0);
 
-//gets the image when the button from above is pressed
+        //gets the image when the above button is pressed
         View_button.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
+                //renderImage = !renderImage;       this gets rid of the need for the show slice button
+                TopDownSlice(top_image, (int) Top_slider.getValue());
+                FrontSlice(front_image, (int) Front_slider.getValue());
+                SideSlice(side_image, (int) Side_slider.getValue());
+            }
+        });
+
+        //add colour to image when button is pressed
+//TODO do i need the render slider in here
+        Rend_button.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                renderImage = !renderImage;
+                //    CTcol(((int) Rend_slider.getValue())/100);
+// TODO change these values to the colour render thing
                 TopDownSlice(top_image, (int) Top_slider.getValue());
                 FrontSlice(front_image, (int) Front_slider.getValue());
                 SideSlice(side_image, (int) Side_slider.getValue());
@@ -104,19 +119,25 @@ public class Example extends Application {
             }
         });
 
+    //TODO fix this for the render slider
+        Rend_slider.valueProperty().addListener( new ChangeListener<Number>() {
+            public void changed(ObservableValue <? extends Number > observable, Number oldValue, Number newValue) {
+                System.out.println(newValue.intValue());
+         //       CTcol(((int) Rend_slider.getValue())/100);
+//TODO add the slices here maybe so i can add the colour to them
+            }
+        });
+
         FlowPane root = new FlowPane();
         root.setVgap(25);
         root.setHgap(10);
-    //https://examples.javacodegeeks.com/desktop-java/javafx/scene/image-scene/javafx-image-example/
 
 
-//TODO NEED MULTIPLE AND TO ACCOMODATE MORE THAN JUST ONE SLICE
-        //3. (referring to the 3 things we need to display an image)
-        //we need to add it to the flow pane
+        //adds things to the flow pane
         root.getChildren().addAll(TopView, Top_slider);
         root.getChildren().addAll(FrontView, Front_slider);
         root.getChildren().addAll(SideView, Side_slider);
-        root.getChildren().addAll(View_button);
+        root.getChildren().addAll(View_button, Rend_button, Rend_slider);
 
         Scene scene = new Scene(root, 425,600);
         stage.setScene(scene);
@@ -125,9 +146,7 @@ public class Example extends Application {
 
     //Function to read in the cthead data set
     public void ReadData() throws IOException {
-        //File name is hardcoded here - much nicer to have a dialog to select it and capture the size from the user
         File file = new File("CThead");
-        //Read the data quickly via a buffer
         DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(file)));
 
         int i, j, k; //loop through the 3D data set
@@ -167,23 +186,35 @@ public class Example extends Application {
 //TopDownSlice was TopDownSlice76
     public void TopDownSlice(WritableImage image, int z) {
         //Get image dimensions, and declare loop variables
-        int Tw=(int) image.getWidth(), Th=(int) image.getHeight();
+        int w=(int) image.getWidth(), h=(int) image.getHeight();
         PixelWriter image_writer = image.getPixelWriter();
 
         double col;
         short datum;
                 //Shows how to loop through each pixel and colour
                 //Try to always use j for loops in y, and i for loops in x as this makes the code more readable
-        for (int j=0; j<Th; j++) {  // row loop
-            for (int i=0; i<Tw; i++) { // column loop
+        for (int j=0; j<h; j++) {  // row loop
+            for (int i=0; i<w; i++) { // column loop
                         /* at this point (i,j) is a single pixel in the image here you would need to do something to (i,j) if the image size does not match the slice size (e.g. during an image resizing operation
                         If you don't do this, your j,i could be outside the array bounds
                         In the framework, the image is 256x256 and the data set slices are 256x256 so I don't do anything - this also leaves you something to do for the assignment */
-                datum=cthead[z][j][i]; //get values from slice 76 (change this in your assignment)
-                        //calculate the colour by performing a mapping from [min,max] -> 0 to 1 (float)
-                        //Java setColor uses float values from 0 to 1 rather than 0-255 bytes for colour
-                col=(((float)datum-(float)min)/((float)(max-min)));
-                image_writer.setColor(i, j, Color.color(col,col,col, 1.0));
+                datum = cthead[z][j][i];
+                //calculate the colour by performing a mapping from [min,max] -> 0 to 1 (float)
+                //Java setColor uses float values from 0 to 1 rather than 0-255 bytes for colour
+                col = (((float) datum - (float) min) / ((float) (max - min)));
+                if(!renderImage){
+                    image_writer.setColor(i, j, Color.color(col, col, col, 1.0));
+                }else{
+                    if (datum < -300) {
+                        image_writer.setColor(i, j, Color.color(0, 0, 0, 0));
+                    } else if (-300 <= datum && datum <= 49) {
+                        image_writer.setColor(i, j, Color.color(1.0, 0.79, 0.6, 0.12));
+                    } else if (50 <= datum && datum <= 299) {
+                        image_writer.setColor(i, j, Color.color(0, 0, 0, 0));
+                    } else if (300 <= datum && datum <= 4096) {
+                        image_writer.setColor(i, j, Color.color(1.0, 1.0, 1.0, 0.8));
+                    }
+                }
             }
         }
     }
@@ -199,7 +230,19 @@ public class Example extends Application {
             for (int i=0; i<w; i++) {
                 datum=cthead[j][y][i];
                 col=(((float)datum-(float)min)/((float)(max-min)));
-                image_writer.setColor(i, j, Color.color(col,col,col, 1.0));
+                if(!renderImage){
+                    image_writer.setColor(i, j, Color.color(col, col, col, 1.0));
+                }else {
+                    if (datum < -300) {
+                        image_writer.setColor(i, j, Color.color(0, 0, 0, 0));
+                    } else if (-300 <= datum && datum <= 49) {
+                        image_writer.setColor(i, j, Color.color(1.0, 0.79, 0.6, 0.12));
+                    } else if (50 <= datum && datum <= 299) {
+                        image_writer.setColor(i, j, Color.color(0, 0, 0, 0));
+                    } else if (300 <= datum && datum <= 4096) {
+                        image_writer.setColor(i, j, Color.color(1.0, 1.0, 1.0, 0.8));
+                    }
+                }
             }
         }
     }
@@ -215,10 +258,23 @@ public class Example extends Application {
             for (int i=0; i<w; i++) {
                 datum=cthead[j][i][x];
                 col=(((float)datum-(float)min)/((float)(max-min)));
-                image_writer.setColor(i, j, Color.color(col,col,col, 1.0));
+                if(!renderImage){
+                    image_writer.setColor(i, j, Color.color(col, col, col, 1.0));
+                }else {
+                    if (datum < -300) {
+                        image_writer.setColor(i, j, Color.color(0, 0, 0, 0));
+                    } else if (-300 <= datum && datum <= 49) {
+                        image_writer.setColor(i, j, Color.color(1.0, 0.79, 0.6, 0.12));
+                    } else if (50 <= datum && datum <= 299) {
+                        image_writer.setColor(i, j, Color.color(0, 0, 0, 0));
+                    } else if (300 <= datum && datum <= 4096) {
+                        image_writer.setColor(i, j, Color.color(1.0, 1.0, 1.0, 0.8));
+                    }
+                }
             }
         }
     }
+
 
 //MAIN METHOD
     public static void main(String[] args) {
