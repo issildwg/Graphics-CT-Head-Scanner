@@ -28,7 +28,12 @@ public class Example extends Application {
     int CT_z_axis = 113;
     boolean renderImage = false;
 
-
+    /**
+     * Deals with the buttons, the sliders and the stage (ie all the visual aspects of the program)
+     * @param stage
+     * @throws FileNotFoundException
+     * @throws IOException
+     */
     @Override
     public void start(Stage stage) throws FileNotFoundException, IOException {
         stage.setTitle("CThead Viewer");
@@ -60,71 +65,68 @@ public class Example extends Application {
         ImageView SideView = new ImageView(side_image);
 
 
-        // was slice76_button - is now View_button -- press to show slices
+        //buttons
         Button View_button=new Button("Show slice");
-
         Button Rend_button=new Button("Render");
 
-        //sliders to step through the slices
+        //sliders
         Slider Top_slider = new Slider(0, CT_z_axis-1, 0);
         Slider Front_slider = new Slider(0, CT_y_axis-1, 0);
         Slider Side_slider = new Slider(0, CT_x_axis-1, 0);
-        Slider Rend_slider = new Slider(0, 100, 0);
+        Slider Op_slider = new Slider(0, 100, 12);
 
-        //gets the image when the above button is pressed
+        //gets the image when the View button is pressed
         View_button.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
                 //renderImage = !renderImage;       this gets rid of the need for the show slice button
-                TopDownSlice(top_image, (int) Top_slider.getValue());
-                FrontSlice(front_image, (int) Front_slider.getValue());
-                SideSlice(side_image, (int) Side_slider.getValue());
+                TopDownSlice(top_image, (int) Top_slider.getValue(), (int) Op_slider.getValue());
+                FrontSlice(front_image, (int) Front_slider.getValue(), (int) Op_slider.getValue());
+                SideSlice(side_image, (int) Side_slider.getValue(), (int) Op_slider.getValue());
             }
         });
 
-        //add colour to image when button is pressed
-//TODO do i need the render slider in here
+        //toggles having a coloured image when the Render button is pressed
         Rend_button.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
                 renderImage = !renderImage;
-                //    CTcol(((int) Rend_slider.getValue())/100);
-// TODO change these values to the colour render thing
-                TopDownSlice(top_image, (int) Top_slider.getValue());
-                FrontSlice(front_image, (int) Front_slider.getValue());
-                SideSlice(side_image, (int) Side_slider.getValue());
+                TopDownSlice(top_image, (int) Top_slider.getValue(), (int) Op_slider.getValue());
+                FrontSlice(front_image, (int) Front_slider.getValue(), (int) Op_slider.getValue());
+                SideSlice(side_image, (int) Side_slider.getValue(), (int) Op_slider.getValue());
             }
         });
 
 
-        // listens to the number on the slider and displays it
+        // listens to the number on the slice sliders and displays them
         Top_slider.valueProperty().addListener( new ChangeListener<Number>() {
             public void changed(ObservableValue <? extends Number > observable, Number oldValue, Number newValue) {
                 System.out.println(newValue.intValue());
-                TopDownSlice(top_image, (int) Top_slider.getValue());
+                TopDownSlice(top_image, (int) Top_slider.getValue(), (int) Op_slider.getValue());
             }
         });
 
         Front_slider.valueProperty().addListener( new ChangeListener<Number>() {
             public void changed(ObservableValue <? extends Number > observable, Number oldValue, Number newValue) {
                 System.out.println(newValue.intValue());
-                FrontSlice(front_image, (int) Front_slider.getValue());
+                FrontSlice(front_image, (int) Front_slider.getValue(), (int) Op_slider.getValue());
             }
         });
 
         Side_slider.valueProperty().addListener( new ChangeListener<Number>() {
             public void changed(ObservableValue <? extends Number > observable, Number oldValue, Number newValue) {
                 System.out.println(newValue.intValue());
-                SideSlice(side_image, (int) Side_slider.getValue());
+                SideSlice(side_image, (int) Side_slider.getValue(), (int) Op_slider.getValue());
             }
         });
 
-    //TODO fix this for the render slider
-        Rend_slider.valueProperty().addListener( new ChangeListener<Number>() {
+        // listens to the number on the opacity slider and displays it
+        Op_slider.valueProperty().addListener( new ChangeListener<Number>() {
             public void changed(ObservableValue <? extends Number > observable, Number oldValue, Number newValue) {
                 System.out.println(newValue.intValue());
-         //       CTcol(((int) Rend_slider.getValue())/100);
-//TODO add the slices here maybe so i can add the colour to them
+                TopDownSlice(top_image, (int) Top_slider.getValue(), (int) Op_slider.getValue());
+                FrontSlice(front_image, (int) Front_slider.getValue(), (int) Op_slider.getValue());
+                SideSlice(side_image, (int) Side_slider.getValue(), (int) Op_slider.getValue());
             }
         });
 
@@ -137,21 +139,26 @@ public class Example extends Application {
         root.getChildren().addAll(TopView, Top_slider);
         root.getChildren().addAll(FrontView, Front_slider);
         root.getChildren().addAll(SideView, Side_slider);
-        root.getChildren().addAll(View_button, Rend_button, Rend_slider);
+        root.getChildren().addAll(View_button, Rend_button, Op_slider);
 
         Scene scene = new Scene(root, 425,600);
         stage.setScene(scene);
         stage.show();
     }
 
-    //Function to read in the cthead data set
+    /**
+     * Function to read in the cthead data set
+     * @throws IOException
+     */
     public void ReadData() throws IOException {
         File file = new File("CThead");
         DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(file)));
 
-        int i, j, k; //loop through the 3D data set
+        int i;
+        int j;
+        int k; //loop through the 3D data set
 
-        min=Short.MAX_VALUE; max=Short.MIN_VALUE; //set to extreme values
+        min=Short.MAX_VALUE; max=Short.MIN_VALUE;
         short read; //value read in
         int b1, b2; //data is wrong Endian (order of bytes) for Java so we need to swap the bytes around
 
@@ -170,26 +177,26 @@ public class Example extends Application {
                 }
             }
         }
-        System.out.println(min+" "+max); //diagnostic - for CThead this should be -1117, 2248
+        System.out.println(min+" "+max);
         //(i.e. there are 3366 levels of grey (we are trying to display on 256 levels of grey)
         //therefore histogram equalization would be a good thing
         //maybe put your histogram equalization code here to set up the mapping array
     }
 
 
-
-
-     /*  This function shows how to carry out an operation on an image.
-       It obtains the dimensions of the image, and then loops through the image carrying out the copying of a slice of data into the image. */
-
-//READS PIXELS AND WRITES THEM OUT TO A CERTAIN SIZE - CHANGE IT?
-//TopDownSlice was TopDownSlice76
-    public void TopDownSlice(WritableImage image, int z) {
+    //  these functions obtain the dimensions of the image, and then loop through the image carrying out the copying of a slice of data into the image.
+    /**
+     * This function shows how to carry out an operation on an image for the top down view
+     * @param image
+     * @param slice
+     * @param opacityVal
+     */
+    public void TopDownSlice(WritableImage image, int slice, float opacityVal) {
         //Get image dimensions, and declare loop variables
         int w=(int) image.getWidth(), h=(int) image.getHeight();
         PixelWriter image_writer = image.getPixelWriter();
 
-        double col;
+        float op;
         short datum;
                 //Shows how to loop through each pixel and colour
                 //Try to always use j for loops in y, and i for loops in x as this makes the code more readable
@@ -198,28 +205,43 @@ public class Example extends Application {
                         /* at this point (i,j) is a single pixel in the image here you would need to do something to (i,j) if the image size does not match the slice size (e.g. during an image resizing operation
                         If you don't do this, your j,i could be outside the array bounds
                         In the framework, the image is 256x256 and the data set slices are 256x256 so I don't do anything - this also leaves you something to do for the assignment */
-                datum = cthead[z][j][i];
+
                 //calculate the colour by performing a mapping from [min,max] -> 0 to 1 (float)
                 //Java setColor uses float values from 0 to 1 rather than 0-255 bytes for colour
-                col = (((float) datum - (float) min) / ((float) (max - min)));
+
                 if(!renderImage){
+                    datum = cthead[slice][j][i];
+                    double col = (((float) datum - (float) min) / ((float) (max - min)));
                     image_writer.setColor(i, j, Color.color(col, col, col, 1.0));
+
                 }else{
-                    if (datum < -300) {
-                        image_writer.setColor(i, j, Color.color(0, 0, 0, 0));
-                    } else if (-300 <= datum && datum <= 49) {
-                        image_writer.setColor(i, j, Color.color(1.0, 0.79, 0.6, 0.12));
-                    } else if (50 <= datum && datum <= 299) {
-                        image_writer.setColor(i, j, Color.color(0, 0, 0, 0));
-                    } else if (300 <= datum && datum <= 4096) {
-                        image_writer.setColor(i, j, Color.color(1.0, 1.0, 1.0, 0.8));
+                    double r = 0;
+                    double g = 0;
+                    double b = 0;
+                    double transparency = 1.0;
+
+                    for (int a = slice; a < 113; a++) {
+                        Color voxel = tF(cthead[a][j][i], opacityVal);                      //adjust to slice - from datum...
+                        //from the lecture slides
+                        r += voxel.getRed() * voxel.getOpacity() * transparency;
+                        g += voxel.getGreen() * voxel.getOpacity() * transparency;
+                        b += voxel.getBlue() * voxel.getOpacity() * transparency;
+                        transparency *= (1.0 - voxel.getOpacity());
                     }
+                    image_writer.setColor(i, j, new Color(clampNumber(r), clampNumber(g), clampNumber(b), 1));
                 }
             }
         }
     }
 
-    public void FrontSlice(WritableImage image, int y) {
+
+    /**
+     * This function shows how to carry out an operation on an image for the front facing view
+     * @param image
+     * @param slice
+     * @param opacityVal
+     */
+    public void FrontSlice(WritableImage image, int slice, float opacityVal) {
         //Get image dimensions, and declare loop variables
         int w=(int) image.getWidth(), h=(int) image.getHeight();
         PixelWriter image_writer = image.getPixelWriter();
@@ -228,27 +250,38 @@ public class Example extends Application {
         short datum;
         for (int j=0; j<h; j++) {
             for (int i=0; i<w; i++) {
-                datum=cthead[j][y][i];
+                datum=cthead[j][slice][i];
                 col=(((float)datum-(float)min)/((float)(max-min)));
                 if(!renderImage){
                     image_writer.setColor(i, j, Color.color(col, col, col, 1.0));
-                }else {
-                    if (datum < -300) {
-                        image_writer.setColor(i, j, Color.color(0, 0, 0, 0));
-                    } else if (-300 <= datum && datum <= 49) {
-                        image_writer.setColor(i, j, Color.color(1.0, 0.79, 0.6, 0.12));
-                    } else if (50 <= datum && datum <= 299) {
-                        image_writer.setColor(i, j, Color.color(0, 0, 0, 0));
-                    } else if (300 <= datum && datum <= 4096) {
-                        image_writer.setColor(i, j, Color.color(1.0, 1.0, 1.0, 0.8));
+                    image_writer.setColor(i, j, Color.color(col, col, col, 1.0));
+
+                }else{
+                    double r = 0;
+                    double g = 0;
+                    double b = 0;
+                    double transparency = 1.0;
+
+                    for (int a = slice; a < 256; a++) {
+                        Color voxel = tF(cthead[j][a][i], opacityVal);
+                        r += voxel.getRed() * voxel.getOpacity() * transparency;
+                        g += voxel.getGreen() * voxel.getOpacity() * transparency;
+                        b += voxel.getBlue() * voxel.getOpacity() * transparency;
+                        transparency *= (1.0 - voxel.getOpacity());
                     }
+                    image_writer.setColor(i, j, new Color(clampNumber(r), clampNumber(g), clampNumber(b), 1));
                 }
             }
         }
     }
 
-    public void SideSlice(WritableImage image, int x) {
-        //Get image dimensions, and declare loop variables
+    /**
+     * This function shows how to carry out an operation on an image for the side facing view
+     * @param image
+     * @param slice
+     * @param opacityVal
+     */
+    public void SideSlice(WritableImage image, int slice, float opacityVal) {
         int w=(int) image.getWidth(), h=(int) image.getHeight();
         PixelWriter image_writer = image.getPixelWriter();
 
@@ -256,29 +289,58 @@ public class Example extends Application {
         short datum;
         for (int j=0; j<h; j++) {
             for (int i=0; i<w; i++) {
-                datum=cthead[j][i][x];
+                datum=cthead[j][i][slice];
                 col=(((float)datum-(float)min)/((float)(max-min)));
                 if(!renderImage){
                     image_writer.setColor(i, j, Color.color(col, col, col, 1.0));
-                }else {
-                    if (datum < -300) {
-                        image_writer.setColor(i, j, Color.color(0, 0, 0, 0));
-                    } else if (-300 <= datum && datum <= 49) {
-                        image_writer.setColor(i, j, Color.color(1.0, 0.79, 0.6, 0.12));
-                    } else if (50 <= datum && datum <= 299) {
-                        image_writer.setColor(i, j, Color.color(0, 0, 0, 0));
-                    } else if (300 <= datum && datum <= 4096) {
-                        image_writer.setColor(i, j, Color.color(1.0, 1.0, 1.0, 0.8));
+                    image_writer.setColor(i, j, Color.color(col, col, col, 1.0));
+
+                }else{
+                    double r = 0;
+                    double g = 0;
+                    double b = 0;
+                    double transparency = 1.0;
+
+                    for (int a = slice; a < 256; a++) {
+                        Color voxel = tF(cthead[j][i][a], opacityVal);
+                        //from the lecture slides
+                        r += voxel.getRed() * voxel.getOpacity() * transparency;
+                        g += voxel.getGreen() * voxel.getOpacity() * transparency;
+                        b += voxel.getBlue() * voxel.getOpacity() * transparency;
+                        transparency *= (1.0 - voxel.getOpacity());
                     }
+                    image_writer.setColor(i, j, new Color(clampNumber(r), clampNumber(g), clampNumber(b), 1));
                 }
             }
         }
     }
 
+    private Color tF (double data, double opacityVal){
+        if (data < -300) {
+            return Color.color(0, 0, 0, 0);
+        } else if (data <= 49) {
+            return Color.color(1.0, 0.79, 0.6, opacityVal / 100);     //SKIN
+        } else if (data <= 299) {
+            return Color.color(0, 0, 0, 0);
+        } else if (data <= 4096) {
+            return Color.color(1.0, 1.0, 1.0, 0.8);   //BONE
+        }
+        return Color.color(0, 0, 0, 0);
+    }
 
-//MAIN METHOD
+    public double clampNumber(double a){
+        if(a > 1.0) {
+            return 1.0;
+        } else {
+            return a;
+        }
+    }
+
+    /**
+     * Main method which launches the program
+     * @param args
+     */
     public static void main(String[] args) {
         launch();
     }
-
 }
