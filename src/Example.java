@@ -24,6 +24,7 @@ public class Example extends Application {
     int CT_y_axis = 256;
     int CT_z_axis = 113;
     boolean renderImage = false;
+    boolean invertImage = false;
 
     /**
      * Deals with the buttons, the sliders and the stage (ie all the visual aspects of the program)
@@ -55,6 +56,7 @@ public class Example extends Application {
 
         Button View_button=new Button("Show slice");
         Button Rend_button=new Button("Render");
+        Button Invert=new Button("Invert Render");
 
         Slider Top_slider = new Slider(0, CT_z_axis-1, 0);
         Slider Front_slider = new Slider(0, CT_y_axis-1, 0);
@@ -78,6 +80,13 @@ public class Example extends Application {
                 TopDownSlice(top_image, (int) Top_slider.getValue(), (int) Op_slider.getValue());
                 FrontSlice(front_image, (int) Front_slider.getValue(), (int) Op_slider.getValue());
                 SideSlice(side_image, (int) Side_slider.getValue(), (int) Op_slider.getValue());
+            }
+        });
+
+        Invert.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                invertImage = !invertImage;
             }
         });
 
@@ -118,7 +127,7 @@ public class Example extends Application {
         root.getChildren().addAll(TopView, Top_slider);
         root.getChildren().addAll(FrontView, Front_slider);
         root.getChildren().addAll(SideView, Side_slider);
-        root.getChildren().addAll(View_button, Rend_button, Op_slider);
+        root.getChildren().addAll(View_button, Rend_button, Invert, Op_slider);
 
         Scene scene = new Scene(root, 425,600);
         stage.setScene(scene);
@@ -189,7 +198,7 @@ public class Example extends Application {
                         b += voxel.getBlue() * voxel.getOpacity() * transparency;
                         transparency *= (1.0 - voxel.getOpacity());
                     }
-                    image_writer.setColor(i, j, new Color(clampNumber(r), clampNumber(g), clampNumber(b), 1));
+                    image_writer.setColor(i, j, new Color(capNumber(r), capNumber(g), capNumber(b), 1));
                 }
             }
         }
@@ -214,7 +223,6 @@ public class Example extends Application {
                 col=(((float)datum-(float)min)/((float)(max-min)));
                 if(!renderImage){
                     image_writer.setColor(i, j, Color.color(col, col, col, 1.0));
-                    image_writer.setColor(i, j, Color.color(col, col, col, 1.0));
                 }else{
                     double r = 0;
                     double g = 0;
@@ -228,7 +236,7 @@ public class Example extends Application {
                         b += voxel.getBlue() * voxel.getOpacity() * transparency;
                         transparency *= (1.0 - voxel.getOpacity());
                     }
-                    image_writer.setColor(i, j, new Color(clampNumber(r), clampNumber(g), clampNumber(b), 1));
+                    image_writer.setColor(i, j, new Color(capNumber(r), capNumber(g), capNumber(b), 1));
                 }
             }
         }
@@ -266,11 +274,12 @@ public class Example extends Application {
                         b += voxel.getBlue() * voxel.getOpacity() * transparency;
                         transparency *= (1.0 - voxel.getOpacity());
                     }
-                    image_writer.setColor(i, j, new Color(clampNumber(r), clampNumber(g), clampNumber(b), 1));
+                    image_writer.setColor(i, j, new Color(capNumber(r), capNumber(g), capNumber(b), 1));
                 }
             }
         }
     }
+
 
     /**
      * Sets the colours and opacities for the volume rendering (renders the skin and bone)
@@ -280,7 +289,7 @@ public class Example extends Application {
      */
     private Color tF (double data, double opacityVal){
         if (data < -300) {
-            return Color.color(0, 0, 0, 0);
+            return Color.color(0, 0, 0, 1);
         } else if (data <= 49) {
             return Color.color(1.0, 0.79, 0.6, opacityVal / 100);
         } else if (data <= 299) {
@@ -296,7 +305,7 @@ public class Example extends Application {
      * @param a The opacity value passed in by the ...Slice methods
      * @return
      */
-    public double clampNumber(double a){
+    public double capNumber(double a){
         if(a > 1.0) {
             return 1.0;
         } else {
